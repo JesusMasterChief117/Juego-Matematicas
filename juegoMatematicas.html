@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Quiz del Búho - Retro Edition</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        /* --- ESTILOS GENERALES --- */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Press Start 2P', cursive;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background-color: #2c3e50;
+            border: 4px solid #ecf0f1;
+            transition: transform 0.1s;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- UI SUPERIOR --- */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            z-index: 50;
+        }
+
+        .hud-top {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+            font-size: 16px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
+        }
+
+        /* --- BURBUJA DE PREGUNTA --- */
+        .question-bubble {
+            position: absolute;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            padding: 20px 40px;
+            border: 4px solid #2c3e50;
+            border-radius: 4px;
+            font-size: 28px;
+            color: #2c3e50;
+            box-shadow: 6px 6px 0 rgba(0,0,0,0.4);
+            text-align: center;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .question-bubble::after {
+            content: ''; position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+            border-width: 20px 20px 0; border-style: solid; border-color: #2c3e50 transparent; display: block; width: 0;
+        }
+        .question-bubble::before {
+            content: ''; position: absolute; bottom: -13px; left: 50%; transform: translateX(-50%);
+            border-width: 17px 17px 0; border-style: solid; border-color: #fff transparent; display: block; width: 0; z-index: 1;
+        }
+
+        /* --- BOTONES DE RESPUESTA --- */
+        #answers-area {
+            position: absolute;
+            bottom: 40px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            pointer-events: auto;
+        }
+
+        .answer-btn {
+            background: #3498db;
+            color: white;
+            border: 4px solid #000;
+            padding: 20px;
+            width: 180px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 4px 4px 0 #000;
+            transition: transform 0.1s, box-shadow 0.1s;
+            position: relative;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .answer-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
+        .answer-btn:hover { background: #5dade2; }
+        .answer-btn.correct { background: #2ecc71 !important; border-color: #000 !important; }
+        .answer-btn.wrong { background: #e74c3c !important; border-color: #000 !important; animation: shake 0.4s; }
+
+        .key-label {
+            position: absolute; top: -15px; left: -15px;
+            background: #f1c40f; color: #2c3e50;
+            border: 2px solid #000; width: 30px; height: 30px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 10px; box-shadow: 2px 2px 0 #000;
+        }
+
+        /* --- PANTALLAS --- */
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(26, 26, 26, 0.95);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: white; text-align: center; pointer-events: auto; z-index: 100;
+        }
+
+        .menu-btn {
+            display: block; width: 350px; padding: 18px; margin: 12px auto;
+            font-family: 'Press Start 2P', cursive;
+            background: #2c3e50; color: #fff;
+            border: 4px solid #fff; cursor: pointer;
+            text-transform: uppercase; font-size: 14px;
+            box-shadow: 4px 4px 0 #000;
+            transition: 0.1s;
+        }
+        .menu-btn:hover { background-color: #f1c40f; color: #2c3e50; transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #000; }
+        .menu-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
+
+        .hidden { display: none !important; }
+
+        /* --- ANIMACIONES --- */
+        @keyframes float { 0% { transform: translate(-50%, 0px); } 50% { transform: translate(-50%, -10px); } 100% { transform: translate(-50%, 0px); } }
+        .shake-screen { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-4px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); } }
+
+        #timer-container {
+            width: 200px; height: 20px; border: 2px solid #fff;
+            background: #000; position: relative; margin-top: 5px;
+        }
+        #timer-bar { height: 100%; background: #2ecc71; width: 100%; transition: width 0.1s linear; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+
+    <!-- UI Layer -->
+    <div id="ui-layer">
+        <div class="hud-top">
+            <div>PUNTOS: <span id="score">0</span></div>
+            <div style="text-align: center;">
+                <div>TIEMPO</div>
+                <div id="timer-container"><div id="timer-bar"></div></div>
+            </div>
+            <div>VIDAS: <span id="lives" style="color: #e74c3c;">❤❤❤</span></div>
+        </div>
+
+        <!-- Globo de Pregunta -->
+        <div id="question-bubble" class="question-bubble hidden">
+            ¿? + ¿?
+        </div>
+
+        <!-- Botones de Respuesta -->
+        <div id="answers-area" class="hidden">
+            <!-- Dinámico -->
+        </div>
+    </div>
+
+    <!-- PANTALLA INICIO -->
+    <div id="start-screen" class="screen">
+        <h1 style="color: #f1c40f; font-size: 35px; margin-bottom: 20px; text-shadow: 4px 4px #000; line-height: 1.5;">EL QUIZ DEL<br>BÚHO SABIO</h1>
+        <p style="color: #bdc3c7; font-size: 12px; margin-bottom: 40px;">RETRO EDITION</p>
+        <button class="menu-btn" id="startBtn">JUGAR</button>
+        <button class="menu-btn" id="difficultyBtn">DIFICULTAD: FACIL</button>
+    </div>
+
+    <!-- PANTALLA GAME OVER -->
+    <div id="game-over-screen" class="screen hidden">
+        <h1 style="color: #e74c3c; font-size: 40px; margin-bottom: 20px; text-shadow: 4px 4px #000;">FIN DEL JUEGO</h1>
+        <p style="margin: 20px 0;">PUNTOS FINALES: <span id="final-score" style="color: #f1c40f;">0</span></p>
+        <button class="menu-btn" id="restartBtn">REINTENTAR</button>
+        <button class="menu-btn" onclick="location.reload()">MENU PRINCIPAL</button>
+    </div>
+
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+</div>
+
+<script>
+    /**
+     * CONFIGURACIÓN
+     */
+    const CANVAS_WIDTH = 800;
+    const CANVAS_HEIGHT = 600;
+
+    /**
+     * MOTOR DE FONDO MEJORADO
+     */
+    class EnvironmentRenderer {
+        constructor(width, height) {
+            this.width = width;
+            this.height = height;
+            this.cacheCanvas = document.createElement('canvas');
+            this.cacheCanvas.width = width;
+            this.cacheCanvas.height = height;
+            this.cacheCtx = this.cacheCanvas.getContext('2d');
+            this.cacheCtx.imageSmoothingEnabled = false;
+            this.generated = false;
+
+            this.grassBlades = [];
+            this.stars = [];
+            this.initElements();
+        }
+
+        initElements() {
+            // Pasto
+            for(let i=0; i<120; i++) {
+                this.grassBlades.push({
+                    x: Math.floor(Math.random() * this.width),
+                    h: 4 + Math.floor(Math.random() * 12),
+                    angle: Math.random() * 0.5 - 0.25
+                });
+            }
+            // Estrellas (solo visibles en la parte oscura)
+            for(let i=0; i<40; i++) {
+                this.stars.push({
+                    x: Math.random() * this.width,
+                    y: Math.random() * (this.height * 0.4),
+                    size: Math.random() > 0.8 ? 2 : 1
+                });
+            }
+        }
+
+        generateBackground() {
+            const ctx = this.cacheCtx;
+
+            // 1. CIELO HORA DORADA (Degradado complejo)
+            const gradient = ctx.createLinearGradient(0, 0, 0, this.height);
+            gradient.addColorStop(0, '#1a1a2e');   // Azul muy oscuro (casi espacio)
+            gradient.addColorStop(0.3, '#4a1c40'); // Púrpura oscuro
+            gradient.addColorStop(0.6, '#d35400'); // Naranja rojizo
+            gradient.addColorStop(1, '#f1c40f');   // Amarillo dorado horizonte
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, this.width, this.height);
+
+            // 2. ESTRELLAS
+            ctx.fillStyle = '#ffffff';
+            this.stars.forEach(s => {
+                ctx.globalAlpha = Math.random() * 0.5 + 0.3;
+                ctx.fillRect(s.x, s.y, s.size, s.size);
+            });
+            ctx.globalAlpha = 1.0;
+
+            // 3. SOL PONIENTE (Estilo Retro)
+            const sunX = this.width * 0.8;
+            const sunY = this.height * 0.5;
+            const sunRadius = 60;
+
+            ctx.fillStyle = '#f39c12'; // Sol naranja
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Rayas del sol (Efecto Synthwave)
+            ctx.fillStyle = 'rgba(74, 28, 64, 0.6)'; // Color del cielo medio
+            for(let i=1; i<6; i++) {
+                let h = i * 6;
+                ctx.fillRect(sunX - sunRadius, sunY + 10 + (i*12), sunRadius*2, h);
+            }
+
+            // 4. MONTAÑAS (3 Capas Parallax)
+            // Lejanas
+            this.drawMountains(ctx, this.height * 0.65, '#2c0e24', 0.008, 80);
+            // Medias
+            this.drawMountains(ctx, this.height * 0.75, '#511e42', 0.012, 50);
+            // Cercanas con Pinos
+            this.drawMountains(ctx, this.height * 0.85, '#2d5a27', 0.015, 30, true);
+
+            // 5. SUELO PRINCIPAL
+            ctx.fillStyle = '#1e401b'; // Pasto oscuro
+            ctx.fillRect(0, Math.floor(this.height * 0.85), this.width, this.height);
+            // Borde iluminado
+            ctx.fillStyle = '#58d68d';
+            ctx.fillRect(0, Math.floor(this.height * 0.85), this.width, 4);
+
+            this.generated = true;
+        }
+
+        drawMountains(ctx, baseY, color, frequency, amplitude, addTrees = false) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(0, this.height);
+
+            let points = [];
+            for (let x = 0; x <= this.width; x += 4) {
+                // Ruido compuesto
+                const noise1 = Math.sin(x * frequency);
+                const noise2 = Math.sin(x * frequency * 2.5) * 0.3;
+                const y = Math.floor(baseY - Math.abs((noise1 + noise2) * amplitude));
+                ctx.lineTo(x, y);
+                points.push({x, y});
+            }
+            ctx.lineTo(this.width, this.height);
+            ctx.fill();
+
+            // Añadir árboles en la capa cercana
+            if (addTrees) {
+                ctx.fillStyle = '#143012'; // Verde muy oscuro
+                for (let i = 0; i < points.length; i += 10 + Math.floor(Math.random()*15)) {
+                    const p = points[i];
+                    // Evitar dibujar árboles donde estará el búho (centro)
+                    if (p.x > 300 && p.x < 500) continue;
+
+                    const treeH = 20 + Math.random() * 20;
+                    const treeW = 8 + Math.random() * 6;
+
+                    // Triangulo pino
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p.x - treeW/2, p.y + treeH/3); // Base ancha
+                    ctx.lineTo(p.x - treeW/2, p.y + treeH);   // Tronco abajo (oculto en montaña)
+                    ctx.lineTo(p.x + treeW/2, p.y + treeH);
+                    ctx.lineTo(p.x + treeW/2, p.y + treeH/3);
+                    ctx.lineTo(p.x, p.y - treeH); // Punta
+                    ctx.fill();
+                }
+            }
+        }
+
+        draw(ctx, time) {
+            if (!this.generated) this.generateBackground();
+            ctx.drawImage(this.cacheCanvas, 0, 0);
+
+            // Pasto Animado
+            ctx.strokeStyle = '#2ecc71';
+            ctx.lineWidth = 2;
+            this.grassBlades.forEach(blade => {
+                const sway = Math.floor(Math.sin(time * 0.002 + blade.x) * 3);
+                const baseX = blade.x;
+                const baseY = this.height;
+                ctx.beginPath();
+                ctx.moveTo(baseX, baseY);
+                ctx.quadraticCurveTo(baseX + sway, baseY - blade.h / 2, baseX + sway * 2, baseY - blade.h);
+                ctx.stroke();
+            });
+        }
+    }
+
+    /**
+     * PERSONAJE: BÚHO SABIO
+     */
+    class OwlPresenter {
+        constructor() {
+            this.x = CANVAS_WIDTH / 2 - 80;
+            this.y = CANVAS_HEIGHT / 2 + 50;
+            this.pixelSize = 8;
+            this.mood = 'IDLE';
+            this.moodTimer = 0;
+            this.yOffset = 0;
+
+            // Sprites
+            this.spriteNormal = [
+                [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
+                [0,0,0,1,1,5,5,1,1,5,5,1,1,0,0,0],
+                [0,0,1,1,5,2,2,5,5,2,2,5,1,1,0,0],
+                [0,0,1,1,5,2,3,5,5,3,2,5,1,1,0,0],
+                [0,0,1,1,5,2,2,5,5,2,2,5,1,1,0,0],
+                [0,0,1,1,1,5,5,1,1,5,5,1,1,1,0,0],
+                [0,0,1,1,1,1,1,4,4,1,1,1,1,1,0,0],
+                [0,0,1,5,1,1,1,4,4,1,1,1,5,1,0,0],
+                [0,0,5,5,5,1,1,1,1,1,1,5,5,5,0,0],
+                [0,0,5,5,5,1,2,2,2,2,1,5,5,5,0,0],
+                [0,0,1,5,1,1,2,2,2,2,1,1,5,1,0,0],
+                [0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+                [0,0,0,4,4,4,0,0,0,0,4,4,4,0,0,0]
+            ];
+            this.spriteHappy = [
+                [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
+                [0,0,1,1,1,5,5,1,1,5,5,1,1,1,0,0],
+                [0,1,5,1,5,2,2,5,5,2,2,5,1,5,1,0],
+                [0,1,5,1,5,2,3,5,5,3,2,5,1,5,1,0],
+                [0,0,1,1,5,2,2,5,5,2,2,5,1,1,0,0],
+                [0,0,1,1,1,5,5,1,1,5,5,1,1,1,0,0],
+                [0,0,1,1,1,1,1,4,4,1,1,1,1,1,0,0],
+                [0,0,1,1,1,1,1,4,4,1,1,1,1,1,0,0],
+                [0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
+                [0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0],
+                [0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0],
+                [0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
+                [0,0,0,4,4,4,0,0,0,0,4,4,4,0,0,0]
+            ];
+            this.spriteSad = [
+                [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
+                [0,0,0,1,1,5,5,1,1,5,5,1,1,0,0,0],
+                [0,0,1,1,5,2,2,5,5,2,2,5,1,1,0,0],
+                [0,0,1,1,5,2,2,5,5,2,2,5,1,1,0,0],
+                [0,0,1,1,5,2,2,5,5,2,2,5,1,1,0,0],
+                [0,0,1,1,1,5,5,1,1,5,5,1,1,1,0,0],
+                [0,0,1,1,1,1,1,4,4,1,1,1,1,1,0,0],
+                [0,0,1,5,1,1,1,4,4,1,1,1,5,1,0,0],
+                [0,0,5,5,5,1,1,1,1,1,1,5,5,5,0,0],
+                [0,0,5,5,5,1,2,2,2,2,1,5,5,5,0,0],
+                [0,0,1,5,1,1,2,2,2,2,1,1,5,1,0,0],
+                [0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+                [0,0,0,4,4,4,0,0,0,0,4,4,4,0,0,0]
+            ];
+        }
+
+        setMood(newMood) {
+            this.mood = newMood;
+            this.moodTimer = 1000;
+        }
+
+        update(dt, time) {
+            if (this.mood !== 'IDLE') {
+                this.moodTimer -= dt;
+                if (this.moodTimer <= 0) this.mood = 'IDLE';
+            }
+            if (this.mood === 'IDLE') this.yOffset = Math.sin(time * 0.003) * 5;
+            else if (this.mood === 'HAPPY') this.yOffset = Math.abs(Math.sin(time * 0.01)) * -15;
+            else if (this.mood === 'SAD') this.yOffset = 5;
+        }
+
+        draw(ctx) {
+            let sprite = this.spriteNormal;
+            if (this.mood === 'HAPPY') sprite = this.spriteHappy;
+            if (this.mood === 'SAD') sprite = this.spriteSad;
+
+            const podX = this.x - 20;
+            const podY = this.y + 13 * this.pixelSize;
+
+            // Podio ajustado al nuevo ambiente
+            ctx.fillStyle = '#4a2c18'; // Madera oscura
+            ctx.fillRect(podX, podY, 16 * this.pixelSize + 40, 100);
+            ctx.fillStyle = '#d35400'; // Borde naranja oscuro
+            ctx.fillRect(podX, podY, 16 * this.pixelSize + 40, 10);
+            ctx.fillStyle = '#000'; // Sombra fuerte
+            ctx.fillRect(podX + (16 * this.pixelSize + 40) - 8, podY + 10, 8, 90);
+
+            for(let r=0; r < sprite.length; r++) {
+                for(let c=0; c < sprite[0].length; c++) {
+                    let code = sprite[r][c];
+                    if(code === 0) continue;
+                    if(code === 1) ctx.fillStyle = this.mood === 'SAD' ? '#7f8c8d' : '#f1c40f';
+                    if(code === 2) ctx.fillStyle = '#ecf0f1';
+                    if(code === 3) ctx.fillStyle = '#2c3e50';
+                    if(code === 4) ctx.fillStyle = this.mood === 'SAD' ? '#95a5a6' : '#e67e22';
+                    if(code === 5) ctx.fillStyle = this.mood === 'SAD' ? '#bdc3c7' : '#f39c12';
+                    ctx.fillRect(this.x + (c * this.pixelSize), this.y + (r * this.pixelSize) + this.yOffset, this.pixelSize, this.pixelSize);
+                }
+            }
+        }
+    }
+
+    /**
+     * SISTEMA DE PARTÍCULAS
+     */
+    class ParticleSystem {
+        constructor() {
+            this.particles = [];
+        }
+        spawnConfetti(x, y) {
+            for (let i = 0; i < 40; i++) {
+                this.particles.push({
+                    x: x + Math.random()*100, y: y,
+                    vx: (Math.random() - 0.5) * 15,
+                    vy: (Math.random() - 1) * 15,
+                    color: ['#e74c3c', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6'][Math.floor(Math.random()*5)],
+                    life: 1.0, size: Math.floor(Math.random() * 6 + 4)
+                });
+            }
+        }
+        update(dt) {
+            for (let i = this.particles.length - 1; i >= 0; i--) {
+                let p = this.particles[i];
+                p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.life -= 0.02;
+                if (p.life <= 0) this.particles.splice(i, 1);
+            }
+        }
+        draw(ctx) {
+            this.particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(Math.floor(p.x), Math.floor(p.y), p.size, p.size);
+                ctx.globalAlpha = 1.0;
+            });
+        }
+    }
+
+    /**
+     * LÓGICA DEL JUEGO
+     */
+    class Game {
+        constructor() {
+            this.canvas = document.getElementById('gameCanvas');
+            this.ctx = this.canvas.getContext('2d');
+            this.ctx.imageSmoothingEnabled = false;
+
+            this.env = new EnvironmentRenderer(CANVAS_WIDTH, CANVAS_HEIGHT);
+            this.char = new OwlPresenter();
+            this.particles = new ParticleSystem();
+
+            this.score = 0;
+            this.lives = 3;
+            this.difficulty = 'easy';
+            this.maxTime = 10000;
+            this.currentTime = this.maxTime;
+            this.gameState = 'MENU';
+            this.lastTime = 0;
+            this.currentQuestion = null;
+
+            this.bindUI();
+            requestAnimationFrame(t => this.loop(t));
+        }
+
+        bindUI() {
+            document.getElementById('startBtn').onclick = () => this.startGame();
+            document.getElementById('restartBtn').onclick = () => this.startGame();
+
+            const diffBtn = document.getElementById('difficultyBtn');
+            diffBtn.onclick = () => {
+                if (this.difficulty === 'easy') { this.difficulty = 'medium'; diffBtn.innerText = "DIFICULTAD: MEDIA"; diffBtn.style.color = "#f1c40f"; }
+                else if (this.difficulty === 'medium') { this.difficulty = 'hard'; diffBtn.innerText = "DIFICULTAD: DIFICIL"; diffBtn.style.color = "#e74c3c"; }
+                else { this.difficulty = 'easy'; diffBtn.innerText = "DIFICULTAD: FACIL"; diffBtn.style.color = "#2ecc71"; }
+            };
+        }
+
+        startGame() {
+            this.score = 0;
+            this.lives = 3;
+            this.gameState = 'PLAYING';
+            this.updateStats();
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('question-bubble').classList.remove('hidden');
+            document.getElementById('answers-area').classList.remove('hidden');
+            this.nextTurn();
+        }
+
+        nextTurn() {
+            this.generateQuestion();
+            this.renderUI();
+            this.currentTime = this.maxTime;
+        }
+
+        generateQuestion() {
+            let a, b, op, ans;
+            const isHard = this.difficulty === 'hard';
+            const max = isHard ? 50 : (this.difficulty === 'medium' ? 20 : 10);
+
+            op = Math.random() > 0.5 ? '+' : '-';
+            a = Math.floor(Math.random() * max) + 1;
+            b = Math.floor(Math.random() * max) + 1;
+
+            if (op === '-' && b > a) [a, b] = [b, a];
+
+            ans = op === '+' ? a + b : a - b;
+
+            let opts = new Set([ans]);
+            while(opts.size < 3) {
+                let fake = ans + (Math.floor(Math.random() * 6) - 3);
+                if (fake !== ans) opts.add(fake);
+            }
+
+            this.currentQuestion = {
+                text: `${a} ${op} ${b}`,
+                answer: ans,
+                options: Array.from(opts).sort(() => Math.random() - 0.5)
+            };
+
+            this.maxTime = isHard ? 6000 : 10000;
+        }
+
+        renderUI() {
+            document.getElementById('question-bubble').innerText = this.currentQuestion.text;
+            const area = document.getElementById('answers-area');
+            area.innerHTML = '';
+
+            const keys = ['A', 'B', 'C'];
+            this.currentQuestion.options.forEach((opt, idx) => {
+                const btn = document.createElement('div');
+                btn.className = 'answer-btn';
+                btn.innerHTML = `<div class="key-label">${keys[idx]}</div>${opt}`;
+                btn.onclick = () => this.handleAnswer(opt, btn);
+                area.appendChild(btn);
+            });
+        }
+
+        handleAnswer(val, btnElement) {
+            if(this.gameState !== 'PLAYING') return;
+
+            if (val === this.currentQuestion.answer) {
+                this.score += 100;
+                this.char.setMood('HAPPY');
+                this.particles.spawnConfetti(this.char.x, this.char.y - 50);
+                btnElement.classList.add('correct');
+                setTimeout(() => this.nextTurn(), 1000);
+            } else {
+                this.lives--;
+                this.char.setMood('SAD');
+                btnElement.classList.add('wrong');
+                this.triggerShake();
+                if (this.lives <= 0) setTimeout(() => this.gameOver(), 1000);
+                else setTimeout(() => this.nextTurn(), 1000);
+            }
+            this.updateStats();
+        }
+
+        triggerShake() {
+            const container = document.getElementById('game-container');
+            container.classList.remove('shake-screen');
+            void container.offsetWidth;
+            container.classList.add('shake-screen');
+        }
+
+        updateStats() {
+            document.getElementById('score').innerText = this.score;
+            document.getElementById('lives').innerText = '❤'.repeat(this.lives);
+        }
+
+        gameOver() {
+            this.gameState = 'GAMEOVER';
+            document.getElementById('question-bubble').classList.add('hidden');
+            document.getElementById('answers-area').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.remove('hidden');
+            document.getElementById('final-score').innerText = this.score;
+        }
+
+        loop(timestamp) {
+            const dt = timestamp - this.lastTime;
+            this.lastTime = timestamp;
+
+            // Updates
+            this.char.update(dt, timestamp);
+            this.particles.update(dt);
+
+            if (this.gameState === 'PLAYING') {
+                this.currentTime -= dt;
+                const pct = Math.max(0, (this.currentTime / this.maxTime) * 100);
+                document.getElementById('timer-bar').style.width = `${pct}%`;
+
+                if (this.currentTime <= 0) {
+                    this.lives--;
+                    this.char.setMood('SAD');
+                    this.updateStats();
+                    this.triggerShake();
+                    if (this.lives > 0) this.nextTurn();
+                    else this.gameOver();
+                }
+            }
+
+            // Draw
+            this.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            this.env.draw(this.ctx, timestamp);
+            this.char.draw(this.ctx);
+            this.particles.draw(this.ctx);
+
+            requestAnimationFrame(t => this.loop(t));
+        }
+    }
+
+    window.onload = () => new Game();
+</script>
+</body>
+</html>
