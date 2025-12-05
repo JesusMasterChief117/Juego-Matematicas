@@ -1,685 +1,624 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>El Quiz del Búho - Retro Edition</title>
+    <title>El Quiz del Búho - Pixel Art Enhanced</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-        /* --- ESTILOS GENERALES --- */
         body {
             margin: 0;
             padding: 0;
-            background-color: #1a1a1a;
+            background-color: #0f0f0f;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            font-family: 'Press Start 2P', cursive;
             overflow: hidden;
-            user-select: none;
+            font-family: 'Press Start 2P', cursive;
         }
 
         #game-container {
-            position: relative;
-            width: 800px;
-            height: 600px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            background-color: #2c3e50;
-            border: 4px solid #ecf0f1;
-            transition: transform 0.1s;
-        }
-
-        canvas {
-            display: block;
-            image-rendering: pixelated;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* --- UI SUPERIOR --- */
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            z-index: 50;
-        }
-
-        .hud-top {
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            color: #fff;
-            text-shadow: 2px 2px 0 #000;
-            font-size: 16px;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
-        }
-
-        /* --- BURBUJA DE PREGUNTA --- */
-        .question-bubble {
-            position: absolute;
-            top: 90px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #fff;
-            padding: 20px 40px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.9);
             border: 4px solid #2c3e50;
             border-radius: 4px;
-            font-size: 28px;
-            color: #2c3e50;
-            box-shadow: 6px 6px 0 rgba(0,0,0,0.4);
-            text-align: center;
-            animation: float 3s ease-in-out infinite;
+            image-rendering: pixelated;
+            /* Crucial para nitidez */
         }
-
-        .question-bubble::after {
-            content: ''; position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
-            border-width: 20px 20px 0; border-style: solid; border-color: #2c3e50 transparent; display: block; width: 0;
-        }
-        .question-bubble::before {
-            content: ''; position: absolute; bottom: -13px; left: 50%; transform: translateX(-50%);
-            border-width: 17px 17px 0; border-style: solid; border-color: #fff transparent; display: block; width: 0; z-index: 1;
-        }
-
-        /* --- BOTONES DE RESPUESTA --- */
-        #answers-area {
-            position: absolute;
-            bottom: 40px;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            pointer-events: auto;
-        }
-
-        .answer-btn {
-            background: #3498db;
-            color: white;
-            border: 4px solid #000;
-            padding: 20px;
-            width: 180px;
-            font-family: 'Press Start 2P', cursive;
-            font-size: 20px;
-            cursor: pointer;
-            box-shadow: 4px 4px 0 #000;
-            transition: transform 0.1s, box-shadow 0.1s;
-            position: relative;
-            text-shadow: 2px 2px 0 #000;
-        }
-
-        .answer-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
-        .answer-btn:hover { background: #5dade2; }
-        .answer-btn.correct { background: #2ecc71 !important; border-color: #000 !important; }
-        .answer-btn.wrong { background: #e74c3c !important; border-color: #000 !important; animation: shake 0.4s; }
-
-        .key-label {
-            position: absolute; top: -15px; left: -15px;
-            background: #f1c40f; color: #2c3e50;
-            border: 2px solid #000; width: 30px; height: 30px;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 10px; box-shadow: 2px 2px 0 #000;
-        }
-
-        /* --- PANTALLAS --- */
-        .screen {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(26, 26, 26, 0.95);
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: white; text-align: center; pointer-events: auto; z-index: 100;
-        }
-
-        .menu-btn {
-            display: block; width: 350px; padding: 18px; margin: 12px auto;
-            font-family: 'Press Start 2P', cursive;
-            background: #2c3e50; color: #fff;
-            border: 4px solid #fff; cursor: pointer;
-            text-transform: uppercase; font-size: 14px;
-            box-shadow: 4px 4px 0 #000;
-            transition: 0.1s;
-        }
-        .menu-btn:hover { background-color: #f1c40f; color: #2c3e50; transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #000; }
-        .menu-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
-
-        .hidden { display: none !important; }
-
-        /* --- ANIMACIONES --- */
-        @keyframes float { 0% { transform: translate(-50%, 0px); } 50% { transform: translate(-50%, -10px); } 100% { transform: translate(-50%, 0px); } }
-        .shake-screen { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes shake { 10%, 90% { transform: translate3d(-4px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); } }
-
-        #timer-container {
-            width: 200px; height: 20px; border: 2px solid #fff;
-            background: #000; position: relative; margin-top: 5px;
-        }
-        #timer-bar { height: 100%; background: #2ecc71; width: 100%; transition: width 0.1s linear; }
     </style>
+    <!-- Cargamos Phaser 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 </head>
+
 <body>
 
-<div id="game-container">
+    <div id="game-container"></div>
 
-    <!-- UI Layer -->
-    <div id="ui-layer">
-        <div class="hud-top">
-            <div>PUNTOS: <span id="score">0</span></div>
-            <div style="text-align: center;">
-                <div>TIEMPO</div>
-                <div id="timer-container"><div id="timer-bar"></div></div>
-            </div>
-            <div>VIDAS: <span id="lives" style="color: #e74c3c;">❤❤❤</span></div>
-        </div>
+    <script>
+        /**
+         * --- CONFIGURACIÓN ---
+         */
+        const CONFIG = {
+            width: 800,
+            height: 600,
+            pixelSize: 4, // Tamaño base del "píxel" del mundo
+            colors: {
+                skyTop: 0x2b32b2,
+                skyBottom: 0x1488cc,
+                sun: 0xffd700,
+                mountainFar: 0x3d2c5e,
+                mountainMid: 0x5b4b8a,
+                mountainNear: 0x2d5a27,
+                ground: 0x1e3c1b,
+                snow: 0xffffff,
+                treeDark: 0x143612,
+                treeLight: 0x2d6a28
+            }
+        };
 
-        <!-- Globo de Pregunta -->
-        <div id="question-bubble" class="question-bubble hidden">
-            ¿? + ¿?
-        </div>
+        /**
+         * --- SPRITE DATA (Matrices Pixel Art) ---
+         */
+        const SPRITE_NORMAL = [
+            [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 5, 5, 1, 1, 5, 5, 1, 1, 0, 0, 0],
+            [0, 0, 1, 1, 5, 2, 2, 5, 5, 2, 2, 5, 1, 1, 0, 0],
+            [0, 0, 1, 1, 5, 2, 3, 5, 5, 3, 2, 5, 1, 1, 0, 0],
+            [0, 0, 1, 1, 5, 2, 2, 5, 5, 2, 2, 5, 1, 1, 0, 0],
+            [0, 0, 1, 1, 1, 5, 5, 1, 1, 5, 5, 1, 1, 1, 0, 0],
+            [0, 0, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 1, 5, 1, 1, 1, 4, 4, 1, 1, 1, 5, 1, 0, 0],
+            [0, 0, 5, 5, 5, 1, 1, 1, 1, 1, 1, 5, 5, 5, 0, 0],
+            [0, 0, 5, 5, 5, 1, 2, 2, 2, 2, 1, 5, 5, 5, 0, 0],
+            [0, 0, 1, 5, 1, 1, 2, 2, 2, 2, 1, 1, 5, 1, 0, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 0, 4, 4, 4, 0, 0, 0, 0, 4, 4, 4, 0, 0, 0]
+        ];
 
-        <!-- Botones de Respuesta -->
-        <div id="answers-area" class="hidden">
-            <!-- Dinámico -->
-        </div>
-    </div>
+        const SPRITE_HAPPY = [
+            [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 1, 1, 1, 5, 5, 1, 1, 5, 5, 1, 1, 1, 0, 0],
+            [0, 1, 5, 1, 5, 2, 2, 5, 5, 2, 2, 5, 1, 5, 1, 0],
+            [0, 1, 5, 1, 5, 2, 3, 5, 5, 3, 2, 5, 1, 5, 1, 0],
+            [0, 0, 1, 1, 5, 2, 2, 5, 5, 2, 2, 5, 1, 1, 0, 0],
+            [0, 0, 1, 1, 1, 5, 5, 1, 1, 5, 5, 1, 1, 1, 0, 0],
+            [0, 0, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 4, 4, 4, 0, 0, 0, 0, 4, 4, 4, 0, 0, 0]
+        ];
 
-    <!-- PANTALLA INICIO -->
-    <div id="start-screen" class="screen">
-        <h1 style="color: #f1c40f; font-size: 35px; margin-bottom: 20px; text-shadow: 4px 4px #000; line-height: 1.5;">EL QUIZ DEL<br>BÚHO SABIO</h1>
-        <p style="color: #bdc3c7; font-size: 12px; margin-bottom: 40px;">RETRO EDITION</p>
-        <button class="menu-btn" id="startBtn">JUGAR</button>
-        <button class="menu-btn" id="difficultyBtn">DIFICULTAD: FACIL</button>
-    </div>
+        const SPRITE_SAD = [
+            [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 5, 5, 1, 1, 5, 5, 1, 1, 0, 0, 0],
+            [0, 0, 1, 1, 5, 2, 2, 5, 5, 2, 2, 5, 1, 1, 0, 0],
+            [0, 0, 1, 1, 5, 2, 2, 5, 5, 2, 2, 5, 1, 1, 0, 0],
+            [0, 0, 1, 1, 5, 2, 2, 5, 5, 2, 2, 5, 1, 1, 0, 0],
+            [0, 0, 1, 1, 1, 5, 5, 1, 1, 5, 5, 1, 1, 1, 0, 0],
+            [0, 0, 1, 1, 1, 1, 1, 4, 4, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 1, 5, 1, 1, 1, 4, 4, 1, 1, 1, 5, 1, 0, 0],
+            [0, 0, 5, 5, 5, 1, 1, 1, 1, 1, 1, 5, 5, 5, 0, 0],
+            [0, 0, 5, 5, 5, 1, 2, 2, 2, 2, 1, 5, 5, 5, 0, 0],
+            [0, 0, 1, 5, 1, 1, 2, 2, 2, 2, 1, 1, 5, 1, 0, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 0, 4, 4, 4, 0, 0, 0, 0, 4, 4, 4, 0, 0, 0]
+        ];
 
-    <!-- PANTALLA GAME OVER -->
-    <div id="game-over-screen" class="screen hidden">
-        <h1 style="color: #e74c3c; font-size: 40px; margin-bottom: 20px; text-shadow: 4px 4px #000;">FIN DEL JUEGO</h1>
-        <p style="margin: 20px 0;">PUNTOS FINALES: <span id="final-score" style="color: #f1c40f;">0</span></p>
-        <button class="menu-btn" id="restartBtn">REINTENTAR</button>
-        <button class="menu-btn" onclick="location.reload()">MENU PRINCIPAL</button>
-    </div>
+        const SPRITE_CLOUD = [
+            [0, 0, 0, 1, 1, 1, 0, 0, 0],
+            [0, 0, 1, 2, 2, 2, 1, 0, 0],
+            [0, 1, 2, 2, 2, 2, 2, 1, 0],
+            [1, 2, 2, 2, 2, 2, 2, 2, 1],
+            [1, 2, 2, 2, 2, 2, 2, 2, 1],
+            [0, 1, 1, 1, 1, 1, 1, 1, 0]
+        ];
 
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-</div>
+        const SPRITE_TREE = [
+            [0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 1, 2, 1, 0, 0],
+            [0, 0, 1, 1, 1, 0, 0],
+            [0, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 0, 0],
+            [0, 1, 1, 2, 1, 1, 0],
+            [1, 1, 1, 1, 1, 1, 1],
+            [0, 0, 0, 3, 0, 0, 0]
+        ];
 
-<script>
-    /**
-     * CONFIGURACIÓN
-     */
-    const CANVAS_WIDTH = 800;
-    const CANVAS_HEIGHT = 600;
+        /**
+         * --- HELPER: GENERAR TEXTURA DESDE MATRIZ ---
+         */
+        function generateTextureFromMatrix(scene, key, matrix, pixelSize, paletteOverride = null) {
+            const canvas = document.createElement('canvas');
+            canvas.width = matrix[0].length * pixelSize;
+            canvas.height = matrix.length * pixelSize;
+            const ctx = canvas.getContext('2d');
 
-    /**
-     * MOTOR DE FONDO MEJORADO
-     */
-    class EnvironmentRenderer {
-        constructor(width, height) {
-            this.width = width;
-            this.height = height;
-            this.cacheCanvas = document.createElement('canvas');
-            this.cacheCanvas.width = width;
-            this.cacheCanvas.height = height;
-            this.cacheCtx = this.cacheCanvas.getContext('2d');
-            this.cacheCtx.imageSmoothingEnabled = false;
-            this.generated = false;
+            const defaultColors = {
+                1: '#f1c40f', 2: '#ecf0f1', 3: '#2c3e50', 4: '#e67e22', 5: '#f39c12'
+            };
+            const colors = paletteOverride || defaultColors;
 
-            this.grassBlades = [];
-            this.stars = [];
-            this.initElements();
+            for (let r = 0; r < matrix.length; r++) {
+                for (let c = 0; c < matrix[0].length; c++) {
+                    let code = matrix[r][c];
+                    if (code === 0 || !colors[code]) continue;
+                    ctx.fillStyle = colors[code];
+                    ctx.fillRect(c * pixelSize, r * pixelSize, pixelSize, pixelSize);
+                }
+            }
+            scene.textures.addCanvas(key, canvas);
         }
 
-        initElements() {
-            // Pasto
-            for(let i=0; i<120; i++) {
-                this.grassBlades.push({
-                    x: Math.floor(Math.random() * this.width),
-                    h: 4 + Math.floor(Math.random() * 12),
-                    angle: Math.random() * 0.5 - 0.25
-                });
-            }
-            // Estrellas (solo visibles en la parte oscura)
-            for(let i=0; i<40; i++) {
-                this.stars.push({
-                    x: Math.random() * this.width,
-                    y: Math.random() * (this.height * 0.4),
-                    size: Math.random() > 0.8 ? 2 : 1
-                });
+        /**
+         * --- ESCENA: BOOT (Generación Assets) ---
+         */
+        class BootScene extends Phaser.Scene {
+            constructor() { super('BootScene'); }
+
+            create() {
+                // Búho Colores
+                const sadColors = { 1: '#7f8c8d', 2: '#ecf0f1', 3: '#2c3e50', 4: '#95a5a6', 5: '#bdc3c7' };
+                generateTextureFromMatrix(this, 'owl_normal', SPRITE_NORMAL, 8);
+                generateTextureFromMatrix(this, 'owl_happy', SPRITE_HAPPY, 8);
+                generateTextureFromMatrix(this, 'owl_sad', SPRITE_SAD, 8, sadColors);
+
+                // Nube
+                generateTextureFromMatrix(this, 'cloud', SPRITE_CLOUD, 8, { 1: 'rgba(255,255,255,0.5)', 2: 'rgba(255,255,255,0.9)' });
+
+                // Arbol
+                generateTextureFromMatrix(this, 'tree', SPRITE_TREE, 6, { 1: '#145A32', 2: '#1E8449', 3: '#5D4037' });
+
+                // Confeti
+                let g = this.make.graphics({ x: 0, y: 0 });
+                g.fillStyle(0xffffff);
+                g.fillRect(0, 0, 6, 6);
+                g.generateTexture('confetti', 6, 6);
+
+                this.scene.start('MenuScene');
             }
         }
 
-        generateBackground() {
-            const ctx = this.cacheCtx;
-
-            // 1. CIELO HORA DORADA (Degradado complejo)
-            const gradient = ctx.createLinearGradient(0, 0, 0, this.height);
-            gradient.addColorStop(0, '#1a1a2e');   // Azul muy oscuro (casi espacio)
-            gradient.addColorStop(0.3, '#4a1c40'); // Púrpura oscuro
-            gradient.addColorStop(0.6, '#d35400'); // Naranja rojizo
-            gradient.addColorStop(1, '#f1c40f');   // Amarillo dorado horizonte
-
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, this.width, this.height);
-
-            // 2. ESTRELLAS
-            ctx.fillStyle = '#ffffff';
-            this.stars.forEach(s => {
-                ctx.globalAlpha = Math.random() * 0.5 + 0.3;
-                ctx.fillRect(s.x, s.y, s.size, s.size);
-            });
-            ctx.globalAlpha = 1.0;
-
-            // 3. SOL PONIENTE (Estilo Retro)
-            const sunX = this.width * 0.8;
-            const sunY = this.height * 0.5;
-            const sunRadius = 60;
-
-            ctx.fillStyle = '#f39c12'; // Sol naranja
-            ctx.beginPath();
-            ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Rayas del sol (Efecto Synthwave)
-            ctx.fillStyle = 'rgba(74, 28, 64, 0.6)'; // Color del cielo medio
-            for(let i=1; i<6; i++) {
-                let h = i * 6;
-                ctx.fillRect(sunX - sunRadius, sunY + 10 + (i*12), sunRadius*2, h);
+        /**
+         * --- MANAGER: FONDO PIXEL ART ---
+         * Se encarga de dibujar el entorno complejo
+         */
+        class BackgroundManager {
+            constructor(scene) {
+                this.scene = scene;
+                this.width = 800;
+                this.height = 600;
+                this.pixelSize = 4; // Tamaño del "bloque" para montañas
             }
 
-            // 4. MONTAÑAS (3 Capas Parallax)
-            // Lejanas
-            this.drawMountains(ctx, this.height * 0.65, '#2c0e24', 0.008, 80);
-            // Medias
-            this.drawMountains(ctx, this.height * 0.75, '#511e42', 0.012, 50);
-            // Cercanas con Pinos
-            this.drawMountains(ctx, this.height * 0.85, '#2d5a27', 0.015, 30, true);
+            draw() {
+                // 1. Cielo Gradiente
+                if (!this.scene.textures.exists('skyGradient')) {
+                    let texture = this.scene.textures.createCanvas('skyGradient', 800, 600);
+                    let ctx = texture.getContext();
+                    let grd = ctx.createLinearGradient(0, 0, 0, 600);
+                    grd.addColorStop(0, '#1a2980');
+                    grd.addColorStop(1, '#26d0ce');
+                    ctx.fillStyle = grd;
+                    ctx.fillRect(0, 0, 800, 600);
+                    texture.refresh();
+                }
 
-            // 5. SUELO PRINCIPAL
-            ctx.fillStyle = '#1e401b'; // Pasto oscuro
-            ctx.fillRect(0, Math.floor(this.height * 0.85), this.width, this.height);
-            // Borde iluminado
-            ctx.fillStyle = '#58d68d';
-            ctx.fillRect(0, Math.floor(this.height * 0.85), this.width, 4);
+                this.scene.add.image(400, 300, 'skyGradient').setDepth(-10);
 
-            this.generated = true;
-        }
+                // 2. Sol Pixel Art
+                this.drawPixelSun(650, 150, 40);
 
-        drawMountains(ctx, baseY, color, frequency, amplitude, addTrees = false) {
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.moveTo(0, this.height);
+                // 3. Montañas (Capas)
+                // Lejana
+                this.drawPixelMountain(300, 0.005, 100, CONFIG.colors.mountainFar, false, -5);
+                // Media
+                this.drawPixelMountain(400, 0.009, 80, CONFIG.colors.mountainMid, true, -4);
+                // Cercana
+                this.drawPixelMountain(500, 0.015, 60, CONFIG.colors.mountainNear, true, -3);
 
-            let points = [];
-            for (let x = 0; x <= this.width; x += 4) {
-                // Ruido compuesto
-                const noise1 = Math.sin(x * frequency);
-                const noise2 = Math.sin(x * frequency * 2.5) * 0.3;
-                const y = Math.floor(baseY - Math.abs((noise1 + noise2) * amplitude));
-                ctx.lineTo(x, y);
-                points.push({x, y});
+                // 4. Árboles
+                this.scatterTrees(500, 20);
             }
-            ctx.lineTo(this.width, this.height);
-            ctx.fill();
 
-            // Añadir árboles en la capa cercana
-            if (addTrees) {
-                ctx.fillStyle = '#143012'; // Verde muy oscuro
-                for (let i = 0; i < points.length; i += 10 + Math.floor(Math.random()*15)) {
-                    const p = points[i];
-                    // Evitar dibujar árboles donde estará el búho (centro)
-                    if (p.x > 300 && p.x < 500) continue;
+            drawPixelSun(x, y, radius) {
+                let g = this.scene.add.graphics();
+                g.fillStyle(CONFIG.colors.sun, 1);
+                let p = 6; // pixel size for sun
+                // Algoritmo simple para círculo pixelado
+                for (let r = -radius; r <= radius; r += p) {
+                    for (let c = -radius; c <= radius; c += p) {
+                        if (r * r + c * c <= radius * radius) {
+                            g.fillRect(x + c, y + r, p, p);
+                        }
+                    }
+                }
+                g.setDepth(-9);
+            }
 
-                    const treeH = 20 + Math.random() * 20;
-                    const treeW = 8 + Math.random() * 6;
+            drawPixelMountain(baseY, freq, amp, color, snow, depth) {
+                let g = this.scene.add.graphics();
+                g.fillStyle(color, 1);
+                g.setDepth(depth);
 
-                    // Triangulo pino
-                    ctx.beginPath();
-                    ctx.moveTo(p.x, p.y);
-                    ctx.lineTo(p.x - treeW/2, p.y + treeH/3); // Base ancha
-                    ctx.lineTo(p.x - treeW/2, p.y + treeH);   // Tronco abajo (oculto en montaña)
-                    ctx.lineTo(p.x + treeW/2, p.y + treeH);
-                    ctx.lineTo(p.x + treeW/2, p.y + treeH/3);
-                    ctx.lineTo(p.x, p.y - treeH); // Punta
-                    ctx.fill();
+                let p = this.pixelSize;
+
+                for (let x = 0; x < this.width; x += p) {
+                    // Usamos senos combinados para variar la altura
+                    let noise = Math.sin(x * freq) + Math.sin(x * freq * 2.5) * 0.5;
+                    let h = noise * amp;
+                    let y = baseY + h;
+
+                    // Cuantificar Y a la rejilla de píxeles
+                    y = Math.floor(y / p) * p;
+
+                    // Dibujar columna
+                    g.fillRect(x, y, p, this.height - y);
+
+                    // Nieve en picos altos
+                    if (snow && h < -amp * 0.3) {
+                        g.fillStyle(CONFIG.colors.snow, 0.9);
+                        g.fillRect(x, y, p, p * 3);
+                        g.fillStyle(color, 1); // volver al color montaña
+                    }
+                }
+            }
+
+            scatterTrees(baseY, count) {
+                for (let i = 0; i < count; i++) {
+                    let x = Phaser.Math.Between(0, 800);
+                    let y = Phaser.Math.Between(baseY, 600);
+                    // Escalar según Y para pseudo-perspectiva
+                    let scale = Phaser.Math.FloatBetween(0.8, 1.5);
+                    this.scene.add.image(x, y, 'tree').setOrigin(0.5, 1).setScale(scale).setDepth(-2);
                 }
             }
         }
 
-        draw(ctx, time) {
-            if (!this.generated) this.generateBackground();
-            ctx.drawImage(this.cacheCanvas, 0, 0);
+        /**
+         * --- ESCENA: MENU ---
+         */
+        class MenuScene extends Phaser.Scene {
+            constructor() { super('MenuScene'); }
 
-            // Pasto Animado
-            ctx.strokeStyle = '#2ecc71';
-            ctx.lineWidth = 2;
-            this.grassBlades.forEach(blade => {
-                const sway = Math.floor(Math.sin(time * 0.002 + blade.x) * 3);
-                const baseX = blade.x;
-                const baseY = this.height;
-                ctx.beginPath();
-                ctx.moveTo(baseX, baseY);
-                ctx.quadraticCurveTo(baseX + sway, baseY - blade.h / 2, baseX + sway * 2, baseY - blade.h);
-                ctx.stroke();
-            });
-        }
-    }
+            create() {
+                // Fondo mejorado
+                const bg = new BackgroundManager(this);
+                bg.draw();
+                this.createClouds();
 
-    /**
-     * PERSONAJE: BÚHO SABIO
-     */
-    class OwlPresenter {
-        constructor() {
-            this.x = CANVAS_WIDTH / 2 - 80;
-            this.y = CANVAS_HEIGHT / 2 + 50;
-            this.pixelSize = 8;
-            this.mood = 'IDLE';
-            this.moodTimer = 0;
-            this.yOffset = 0;
+                // Título con sombra sólida pixelada
+                this.add.text(404, 154, 'EL QUIZ DEL\nBÚHO SABIO', {
+                    fontFamily: '"Press Start 2P"', fontSize: '40px', color: '#000000', align: 'center'
+                }).setOrigin(0.5);
+                this.add.text(400, 150, 'EL QUIZ DEL\nBÚHO SABIO', {
+                    fontFamily: '"Press Start 2P"', fontSize: '40px', color: '#f1c40f', align: 'center',
+                    stroke: '#2c3e50', strokeThickness: 6
+                }).setOrigin(0.5);
 
-            // Sprites
-            this.spriteNormal = [
-                [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
-                [0,0,0,1,1,5,5,1,1,5,5,1,1,0,0,0],
-                [0,0,1,1,5,2,2,5,5,2,2,5,1,1,0,0],
-                [0,0,1,1,5,2,3,5,5,3,2,5,1,1,0,0],
-                [0,0,1,1,5,2,2,5,5,2,2,5,1,1,0,0],
-                [0,0,1,1,1,5,5,1,1,5,5,1,1,1,0,0],
-                [0,0,1,1,1,1,1,4,4,1,1,1,1,1,0,0],
-                [0,0,1,5,1,1,1,4,4,1,1,1,5,1,0,0],
-                [0,0,5,5,5,1,1,1,1,1,1,5,5,5,0,0],
-                [0,0,5,5,5,1,2,2,2,2,1,5,5,5,0,0],
-                [0,0,1,5,1,1,2,2,2,2,1,1,5,1,0,0],
-                [0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
-                [0,0,0,4,4,4,0,0,0,0,4,4,4,0,0,0]
-            ];
-            this.spriteHappy = [
-                [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
-                [0,0,1,1,1,5,5,1,1,5,5,1,1,1,0,0],
-                [0,1,5,1,5,2,2,5,5,2,2,5,1,5,1,0],
-                [0,1,5,1,5,2,3,5,5,3,2,5,1,5,1,0],
-                [0,0,1,1,5,2,2,5,5,2,2,5,1,1,0,0],
-                [0,0,1,1,1,5,5,1,1,5,5,1,1,1,0,0],
-                [0,0,1,1,1,1,1,4,4,1,1,1,1,1,0,0],
-                [0,0,1,1,1,1,1,4,4,1,1,1,1,1,0,0],
-                [0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
-                [0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0],
-                [0,0,0,0,0,1,2,2,2,2,1,0,0,0,0,0],
-                [0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
-                [0,0,0,4,4,4,0,0,0,0,4,4,4,0,0,0]
-            ];
-            this.spriteSad = [
-                [0,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0],
-                [0,0,0,1,1,5,5,1,1,5,5,1,1,0,0,0],
-                [0,0,1,1,5,2,2,5,5,2,2,5,1,1,0,0],
-                [0,0,1,1,5,2,2,5,5,2,2,5,1,1,0,0],
-                [0,0,1,1,5,2,2,5,5,2,2,5,1,1,0,0],
-                [0,0,1,1,1,5,5,1,1,5,5,1,1,1,0,0],
-                [0,0,1,1,1,1,1,4,4,1,1,1,1,1,0,0],
-                [0,0,1,5,1,1,1,4,4,1,1,1,5,1,0,0],
-                [0,0,5,5,5,1,1,1,1,1,1,5,5,5,0,0],
-                [0,0,5,5,5,1,2,2,2,2,1,5,5,5,0,0],
-                [0,0,1,5,1,1,2,2,2,2,1,1,5,1,0,0],
-                [0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
-                [0,0,0,4,4,4,0,0,0,0,4,4,4,0,0,0]
-            ];
-        }
+                // Botones
+                this.createButton(400, 350, 'JUGAR', () => this.scene.start('GameScene', { difficulty: this.difficulty }));
 
-        setMood(newMood) {
-            this.mood = newMood;
-            this.moodTimer = 1000;
-        }
+                this.difficulty = 'FACIL';
+                this.diffButtonText = this.createButton(400, 450, 'MODO: FACIL', () => this.toggleDifficulty());
 
-        update(dt, time) {
-            if (this.mood !== 'IDLE') {
-                this.moodTimer -= dt;
-                if (this.moodTimer <= 0) this.mood = 'IDLE';
+                // Búho decorativo
+                this.add.sprite(150, 500, 'owl_normal').setScale(1.5).setFlipX(true);
             }
-            if (this.mood === 'IDLE') this.yOffset = Math.sin(time * 0.003) * 5;
-            else if (this.mood === 'HAPPY') this.yOffset = Math.abs(Math.sin(time * 0.01)) * -15;
-            else if (this.mood === 'SAD') this.yOffset = 5;
-        }
 
-        draw(ctx) {
-            let sprite = this.spriteNormal;
-            if (this.mood === 'HAPPY') sprite = this.spriteHappy;
-            if (this.mood === 'SAD') sprite = this.spriteSad;
-
-            const podX = this.x - 20;
-            const podY = this.y + 13 * this.pixelSize;
-
-            // Podio ajustado al nuevo ambiente
-            ctx.fillStyle = '#4a2c18'; // Madera oscura
-            ctx.fillRect(podX, podY, 16 * this.pixelSize + 40, 100);
-            ctx.fillStyle = '#d35400'; // Borde naranja oscuro
-            ctx.fillRect(podX, podY, 16 * this.pixelSize + 40, 10);
-            ctx.fillStyle = '#000'; // Sombra fuerte
-            ctx.fillRect(podX + (16 * this.pixelSize + 40) - 8, podY + 10, 8, 90);
-
-            for(let r=0; r < sprite.length; r++) {
-                for(let c=0; c < sprite[0].length; c++) {
-                    let code = sprite[r][c];
-                    if(code === 0) continue;
-                    if(code === 1) ctx.fillStyle = this.mood === 'SAD' ? '#7f8c8d' : '#f1c40f';
-                    if(code === 2) ctx.fillStyle = '#ecf0f1';
-                    if(code === 3) ctx.fillStyle = '#2c3e50';
-                    if(code === 4) ctx.fillStyle = this.mood === 'SAD' ? '#95a5a6' : '#e67e22';
-                    if(code === 5) ctx.fillStyle = this.mood === 'SAD' ? '#bdc3c7' : '#f39c12';
-                    ctx.fillRect(this.x + (c * this.pixelSize), this.y + (r * this.pixelSize) + this.yOffset, this.pixelSize, this.pixelSize);
+            createClouds() {
+                this.clouds = [];
+                for (let i = 0; i < 5; i++) {
+                    let c = this.add.image(Phaser.Math.Between(0, 800), Phaser.Math.Between(50, 200), 'cloud');
+                    c.speed = Phaser.Math.FloatBetween(0.2, 0.8);
+                    c.setAlpha(0.8).setDepth(-8);
+                    this.clouds.push(c);
                 }
             }
-        }
-    }
 
-    /**
-     * SISTEMA DE PARTÍCULAS
-     */
-    class ParticleSystem {
-        constructor() {
-            this.particles = [];
-        }
-        spawnConfetti(x, y) {
-            for (let i = 0; i < 40; i++) {
-                this.particles.push({
-                    x: x + Math.random()*100, y: y,
-                    vx: (Math.random() - 0.5) * 15,
-                    vy: (Math.random() - 1) * 15,
-                    color: ['#e74c3c', '#f1c40f', '#2ecc71', '#3498db', '#9b59b6'][Math.floor(Math.random()*5)],
-                    life: 1.0, size: Math.floor(Math.random() * 6 + 4)
+            update() {
+                // Mover nubes
+                this.clouds.forEach(c => {
+                    c.x += c.speed;
+                    if (c.x > 850) c.x = -50;
                 });
             }
-        }
-        update(dt) {
-            for (let i = this.particles.length - 1; i >= 0; i--) {
-                let p = this.particles[i];
-                p.x += p.vx; p.y += p.vy; p.vy += 0.5; p.life -= 0.02;
-                if (p.life <= 0) this.particles.splice(i, 1);
-            }
-        }
-        draw(ctx) {
-            this.particles.forEach(p => {
-                ctx.globalAlpha = p.life;
-                ctx.fillStyle = p.color;
-                ctx.fillRect(Math.floor(p.x), Math.floor(p.y), p.size, p.size);
-                ctx.globalAlpha = 1.0;
-            });
-        }
-    }
 
-    /**
-     * LÓGICA DEL JUEGO
-     */
-    class Game {
-        constructor() {
-            this.canvas = document.getElementById('gameCanvas');
-            this.ctx = this.canvas.getContext('2d');
-            this.ctx.imageSmoothingEnabled = false;
+            createButton(x, y, text, callback) {
+                const container = this.add.container(x, y);
+                // Botón estilo retro
+                const bg = this.add.rectangle(0, 0, 350, 60, 0x2c3e50);
+                const borderTop = this.add.rectangle(0, -28, 350, 4, 0xffffff);
+                const borderBot = this.add.rectangle(0, 28, 350, 4, 0x000000);
 
-            this.env = new EnvironmentRenderer(CANVAS_WIDTH, CANVAS_HEIGHT);
-            this.char = new OwlPresenter();
-            this.particles = new ParticleSystem();
+                const txt = this.add.text(0, 0, text, {
+                    fontFamily: '"Press Start 2P"', fontSize: '18px', color: '#ffffff'
+                }).setOrigin(0.5);
 
-            this.score = 0;
-            this.lives = 3;
-            this.difficulty = 'easy';
-            this.maxTime = 10000;
-            this.currentTime = this.maxTime;
-            this.gameState = 'MENU';
-            this.lastTime = 0;
-            this.currentQuestion = null;
+                container.add([bg, borderTop, borderBot, txt]);
+                container.setSize(350, 60);
+                container.setInteractive({ useHandCursor: true });
 
-            this.bindUI();
-            requestAnimationFrame(t => this.loop(t));
-        }
+                container.on('pointerover', () => { bg.setFillStyle(0xf1c40f); txt.setColor('#2c3e50'); });
+                container.on('pointerout', () => { bg.setFillStyle(0x2c3e50); txt.setColor('#ffffff'); });
+                container.on('pointerdown', () => { container.y += 4; });
+                container.on('pointerup', () => { container.y -= 4; callback(); });
 
-        bindUI() {
-            document.getElementById('startBtn').onclick = () => this.startGame();
-            document.getElementById('restartBtn').onclick = () => this.startGame();
-
-            const diffBtn = document.getElementById('difficultyBtn');
-            diffBtn.onclick = () => {
-                if (this.difficulty === 'easy') { this.difficulty = 'medium'; diffBtn.innerText = "DIFICULTAD: MEDIA"; diffBtn.style.color = "#f1c40f"; }
-                else if (this.difficulty === 'medium') { this.difficulty = 'hard'; diffBtn.innerText = "DIFICULTAD: DIFICIL"; diffBtn.style.color = "#e74c3c"; }
-                else { this.difficulty = 'easy'; diffBtn.innerText = "DIFICULTAD: FACIL"; diffBtn.style.color = "#2ecc71"; }
-            };
-        }
-
-        startGame() {
-            this.score = 0;
-            this.lives = 3;
-            this.gameState = 'PLAYING';
-            this.updateStats();
-            document.getElementById('start-screen').classList.add('hidden');
-            document.getElementById('game-over-screen').classList.add('hidden');
-            document.getElementById('question-bubble').classList.remove('hidden');
-            document.getElementById('answers-area').classList.remove('hidden');
-            this.nextTurn();
-        }
-
-        nextTurn() {
-            this.generateQuestion();
-            this.renderUI();
-            this.currentTime = this.maxTime;
-        }
-
-        generateQuestion() {
-            let a, b, op, ans;
-            const isHard = this.difficulty === 'hard';
-            const max = isHard ? 50 : (this.difficulty === 'medium' ? 20 : 10);
-
-            op = Math.random() > 0.5 ? '+' : '-';
-            a = Math.floor(Math.random() * max) + 1;
-            b = Math.floor(Math.random() * max) + 1;
-
-            if (op === '-' && b > a) [a, b] = [b, a];
-
-            ans = op === '+' ? a + b : a - b;
-
-            let opts = new Set([ans]);
-            while(opts.size < 3) {
-                let fake = ans + (Math.floor(Math.random() * 6) - 3);
-                if (fake !== ans) opts.add(fake);
+                return txt;
             }
 
-            this.currentQuestion = {
-                text: `${a} ${op} ${b}`,
-                answer: ans,
-                options: Array.from(opts).sort(() => Math.random() - 0.5)
-            };
-
-            this.maxTime = isHard ? 6000 : 10000;
+            toggleDifficulty() {
+                if (this.difficulty === 'FACIL') { this.difficulty = 'MEDIO'; this.diffButtonText.setText('MODO: MEDIO'); this.diffButtonText.setColor('#f1c40f'); }
+                else if (this.difficulty === 'MEDIO') { this.difficulty = 'DIFICIL'; this.diffButtonText.setText('MODO: DIFICIL'); this.diffButtonText.setColor('#e74c3c'); }
+                else { this.difficulty = 'FACIL'; this.diffButtonText.setText('MODO: FACIL'); this.diffButtonText.setColor('#ffffff'); }
+            }
         }
 
-        renderUI() {
-            document.getElementById('question-bubble').innerText = this.currentQuestion.text;
-            const area = document.getElementById('answers-area');
-            area.innerHTML = '';
+        /**
+         * --- ESCENA: GAME ---
+         */
+        class GameScene extends Phaser.Scene {
+            constructor() { super('GameScene'); }
 
-            const keys = ['A', 'B', 'C'];
-            this.currentQuestion.options.forEach((opt, idx) => {
-                const btn = document.createElement('div');
-                btn.className = 'answer-btn';
-                btn.innerHTML = `<div class="key-label">${keys[idx]}</div>${opt}`;
-                btn.onclick = () => this.handleAnswer(opt, btn);
-                area.appendChild(btn);
-            });
-        }
+            init(data) {
+                this.difficulty = data.difficulty || 'FACIL';
+                this.score = 0;
+                this.lives = 3;
+                this.maxTime = this.difficulty === 'DIFICIL' ? 6000 : (this.difficulty === 'MEDIO' ? 10000 : 15000);
+                this.timeLeft = this.maxTime;
+                this.timerRunning = false;
+            }
 
-        handleAnswer(val, btnElement) {
-            if(this.gameState !== 'PLAYING') return;
+            create() {
+                // Fondo
+                const bg = new BackgroundManager(this);
+                bg.draw();
+                this.createClouds();
 
-            if (val === this.currentQuestion.answer) {
-                this.score += 100;
-                this.char.setMood('HAPPY');
-                this.particles.spawnConfetti(this.char.x, this.char.y - 50);
-                btnElement.classList.add('correct');
-                setTimeout(() => this.nextTurn(), 1000);
-            } else {
+                // UI
+                this.createUI();
+
+                // Personaje Búho (Depth 5 para estar sobre el podio)
+                this.owl = this.add.sprite(400, 380, 'owl_normal').setScale(1);
+                this.owl.setDepth(5);
+
+                this.tweens.add({
+                    targets: this.owl, y: '+=5', duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+                });
+
+                // Podio Pixel Art (Depth 1 para estar detrás del búho y la UI)
+                this.drawPixelPodium(400, 440);
+
+                // Partículas (Depth 20 para estar encima de todo)
+                this.particles = this.add.particles(0, 0, 'confetti', {
+                    speed: { min: 200, max: 400 },
+                    angle: { min: 220, max: 320 },
+                    gravityY: 500, lifespan: 2000,
+                    tint: [0xe74c3c, 0xf1c40f, 0x2ecc71, 0x3498db], emitting: false
+                });
+                this.particles.setDepth(20);
+
+                this.nextTurn();
+            }
+
+            createClouds() {
+                this.clouds = [];
+                for (let i = 0; i < 5; i++) {
+                    let c = this.add.image(Phaser.Math.Between(0, 800), Phaser.Math.Between(50, 200), 'cloud');
+                    c.speed = Phaser.Math.FloatBetween(0.1, 0.4);
+                    c.setAlpha(0.8).setDepth(-8);
+                    this.clouds.push(c);
+                }
+            }
+
+            drawPixelPodium(x, y) {
+                let g = this.add.graphics();
+                g.setDepth(1); // FIX: Asignamos Depth 1 explícito al podio
+
+                // Tronco/Base
+                g.fillStyle(0x5D4037);
+                g.fillRect(x - 60, y, 120, 200);
+
+                // Detalles madera
+                g.fillStyle(0x3E2723);
+                g.fillRect(x - 50, y + 20, 10, 80);
+                g.fillRect(x + 20, y + 50, 10, 60);
+
+                // Borde superior
+                g.fillStyle(0x8D6E63);
+                g.fillRect(x - 65, y, 130, 10);
+            }
+
+            update(time, delta) {
+                // Nubes
+                this.clouds.forEach(c => {
+                    c.x += c.speed;
+                    if (c.x > 850) c.x = -50;
+                });
+
+                if (this.timerRunning) {
+                    this.timeLeft -= delta;
+                    let pct = Math.max(0, this.timeLeft / this.maxTime);
+                    this.timeBar.width = 200 * pct;
+                    if (pct < 0.3) this.timeBar.fillColor = 0xe74c3c;
+                    else this.timeBar.fillColor = 0x2ecc71;
+                    if (this.timeLeft <= 0) this.handleWrongAnswer(null);
+                }
+            }
+
+            createUI() {
+                // FIX: Asignamos Depth 10 a toda la UI para que siempre esté al frente
+
+                // Panel HUD Semitransparente
+                let hudBg = this.add.rectangle(400, 30, 800, 60, 0x000000, 0.6).setDepth(10);
+
+                this.scoreText = this.add.text(20, 20, 'PTS: 0', { fontFamily: '"Press Start 2P"', fontSize: '16px' }).setDepth(10);
+                this.livesText = this.add.text(780, 20, '❤❤❤', { fontFamily: '"Press Start 2P"', fontSize: '16px', color: '#e74c3c' }).setOrigin(1, 0).setDepth(10);
+
+                // Barra Tiempo
+                this.add.text(400, 10, 'TIEMPO', { fontFamily: '"Press Start 2P"', fontSize: '10px' }).setOrigin(0.5).setDepth(10);
+                this.add.rectangle(400, 35, 204, 24, 0xffffff).setDepth(10);
+                this.add.rectangle(400, 35, 200, 20, 0x000000).setDepth(10);
+                this.timeBar = this.add.rectangle(300, 35, 200, 20, 0x2ecc71).setOrigin(0, 0.5).setDepth(10);
+
+                // Globo Pregunta
+                this.bubbleContainer = this.add.container(400, 150);
+                this.bubbleContainer.setDepth(10); // UI Depth alto
+
+                let bBg = this.add.rectangle(0, 0, 300, 100, 0xffffff).setStrokeStyle(4, 0x2c3e50);
+                let bTri = this.add.triangle(0, 65, 0, 0, 20, 0, 10, 20, 0xffffff).setStrokeStyle(4, 0x2c3e50);
+
+                this.questionText = this.add.text(0, 0, '...', {
+                    fontFamily: '"Press Start 2P"', fontSize: '28px', color: '#2c3e50', align: 'center'
+                }).setOrigin(0.5);
+
+                this.bubbleContainer.add([bBg, bTri, this.questionText]);
+                this.tweens.add({ targets: this.bubbleContainer, y: '+=10', duration: 2000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+                // Respuestas
+                this.answersGroup = [];
+                for (let i = 0; i < 3; i++) this.answersGroup.push(this.createAnswerButton(i));
+            }
+
+            createAnswerButton(index) {
+                const x = [200, 400, 600][index];
+                const y = 550;
+                let container = this.add.container(x, y);
+
+                // FIX: Asignamos Depth 10 al contenedor del botón para que aparezca SOBRE el podio
+                container.setDepth(10);
+
+                let bg = this.add.rectangle(0, 0, 180, 60, 0x3498db);
+                // Borde "3D" pixel art
+                let borderB = this.add.rectangle(0, 28, 180, 4, 0x1f618d);
+                let borderR = this.add.rectangle(88, 0, 4, 60, 0x1f618d);
+
+                let txt = this.add.text(0, 0, '0', { fontFamily: '"Press Start 2P"', fontSize: '20px' }).setOrigin(0.5);
+
+                container.add([bg, borderB, borderR, txt]);
+                container.setSize(180, 60);
+                container.setInteractive({ useHandCursor: true });
+
+                container.bg = bg;
+                container.txt = txt;
+                container.val = 0;
+
+                container.on('pointerover', () => { if (this.inputEnabled) bg.fillColor = 0x5dade2; });
+                container.on('pointerout', () => { if (this.inputEnabled) bg.fillColor = 0x3498db; });
+                container.on('pointerdown', () => { container.y += 4; });
+                container.on('pointerup', () => { container.y -= 4; this.checkAnswer(container); });
+
+                return container;
+            }
+
+            nextTurn() {
+                this.generateQuestion();
+                this.inputEnabled = true;
+                this.timeLeft = this.maxTime;
+                this.timerRunning = true;
+                this.answersGroup.forEach(btn => btn.bg.fillColor = 0x3498db);
+                this.owl.setTexture('owl_normal');
+            }
+
+            generateQuestion() {
+                let limit = this.difficulty === 'FACIL' ? 10 : (this.difficulty === 'MEDIO' ? 20 : 50);
+                let op = Phaser.Math.RND.pick(['+', '-']);
+                let a = Phaser.Math.Between(1, limit);
+                let b = Phaser.Math.Between(1, limit);
+                if (op === '-' && b > a) [a, b] = [b, a];
+                let ans = op === '+' ? a + b : a - b;
+                this.currentAnswer = ans;
+                this.questionText.setText(`${a} ${op} ${b}`);
+
+                let opts = new Set([ans]);
+                while (opts.size < 3) opts.add(ans + Phaser.Math.Between(-5, 5));
+                let optsArr = Array.from(opts);
+                // Si se generan falsos iguales a la respuesta, asegurar diferencia
+                if (optsArr.length < 3) optsArr.push(ans + 10);
+                if (optsArr.length < 3) optsArr.push(ans - 10);
+
+                Phaser.Utils.Array.Shuffle(optsArr);
+                this.answersGroup.forEach((btn, i) => {
+                    btn.val = optsArr[i];
+                    btn.txt.setText(optsArr[i]);
+                });
+            }
+
+            checkAnswer(btn) {
+                if (!this.inputEnabled) return;
+                this.inputEnabled = false;
+                this.timerRunning = false;
+
+                if (btn.val === this.currentAnswer) {
+                    this.score += 100;
+                    this.scoreText.setText('PTS: ' + this.score);
+                    btn.bg.fillColor = 0x2ecc71;
+                    this.owl.setTexture('owl_happy');
+                    this.tweens.add({ targets: this.owl, y: '-=30', duration: 300, yoyo: true });
+                    this.particles.emitParticleAt(this.owl.x, this.owl.y - 50, 50);
+                    this.time.delayedCall(1500, () => this.nextTurn());
+                } else {
+                    this.handleWrongAnswer(btn);
+                }
+            }
+
+            handleWrongAnswer(btn) {
+                this.inputEnabled = false;
+                this.timerRunning = false;
                 this.lives--;
-                this.char.setMood('SAD');
-                btnElement.classList.add('wrong');
-                this.triggerShake();
-                if (this.lives <= 0) setTimeout(() => this.gameOver(), 1000);
-                else setTimeout(() => this.nextTurn(), 1000);
-            }
-            this.updateStats();
-        }
+                this.livesText.setText('❤'.repeat(this.lives));
+                if (btn) btn.bg.fillColor = 0xe74c3c;
+                this.owl.setTexture('owl_sad');
+                this.cameras.main.shake(500, 0.01);
 
-        triggerShake() {
-            const container = document.getElementById('game-container');
-            container.classList.remove('shake-screen');
-            void container.offsetWidth;
-            container.classList.add('shake-screen');
-        }
-
-        updateStats() {
-            document.getElementById('score').innerText = this.score;
-            document.getElementById('lives').innerText = '❤'.repeat(this.lives);
-        }
-
-        gameOver() {
-            this.gameState = 'GAMEOVER';
-            document.getElementById('question-bubble').classList.add('hidden');
-            document.getElementById('answers-area').classList.add('hidden');
-            document.getElementById('game-over-screen').classList.remove('hidden');
-            document.getElementById('final-score').innerText = this.score;
-        }
-
-        loop(timestamp) {
-            const dt = timestamp - this.lastTime;
-            this.lastTime = timestamp;
-
-            // Updates
-            this.char.update(dt, timestamp);
-            this.particles.update(dt);
-
-            if (this.gameState === 'PLAYING') {
-                this.currentTime -= dt;
-                const pct = Math.max(0, (this.currentTime / this.maxTime) * 100);
-                document.getElementById('timer-bar').style.width = `${pct}%`;
-
-                if (this.currentTime <= 0) {
-                    this.lives--;
-                    this.char.setMood('SAD');
-                    this.updateStats();
-                    this.triggerShake();
-                    if (this.lives > 0) this.nextTurn();
-                    else this.gameOver();
+                if (this.lives <= 0) {
+                    this.time.delayedCall(1500, () => this.scene.start('GameOverScene', { score: this.score }));
+                } else {
+                    this.time.delayedCall(1500, () => this.nextTurn());
                 }
             }
-
-            // Draw
-            this.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-            this.env.draw(this.ctx, timestamp);
-            this.char.draw(this.ctx);
-            this.particles.draw(this.ctx);
-
-            requestAnimationFrame(t => this.loop(t));
         }
-    }
 
-    window.onload = () => new Game();
-</script>
+        /**
+         * --- ESCENA: GAME OVER ---
+         */
+        class GameOverScene extends Phaser.Scene {
+            constructor() { super('GameOverScene'); }
+            init(data) { this.score = data.score; }
+            create() {
+                // Fondo oscuro con scanlines
+                this.add.rectangle(400, 300, 800, 600, 0x000000, 0.9);
+                for (let i = 0; i < 600; i += 4) this.add.rectangle(400, i, 800, 1, 0xffffff, 0.1);
+
+                this.add.text(400, 200, 'GAME OVER', { fontFamily: '"Press Start 2P"', fontSize: '50px', color: '#e74c3c' }).setOrigin(0.5);
+                this.add.text(400, 300, 'PUNTUACIÓN: ' + this.score, { fontFamily: '"Press Start 2P"', fontSize: '20px', color: '#f1c40f' }).setOrigin(0.5);
+
+                let btn = this.add.text(400, 450, '> REINTENTAR <', {
+                    fontFamily: '"Press Start 2P"', fontSize: '20px', color: '#ffffff'
+                }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+                this.tweens.add({ targets: btn, alpha: 0.5, duration: 500, yoyo: true, repeat: -1 });
+                btn.on('pointerdown', () => this.scene.start('MenuScene'));
+            }
+        }
+
+        const config = {
+            type: Phaser.AUTO,
+            parent: 'game-container',
+            width: 800,
+            height: 600,
+            backgroundColor: '#0f0f0f',
+            pixelArt: true,
+            scene: [BootScene, MenuScene, GameScene, GameOverScene]
+        };
+
+        const game = new Phaser.Game(config);
+
+    </script>
 </body>
+
 </html>
